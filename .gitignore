@@ -154,3 +154,4 @@ dist
 .yarn/install-state.gz
 .pnp.*
 
+/webtier/vendor/
