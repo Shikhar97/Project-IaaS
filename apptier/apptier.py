@@ -11,12 +11,12 @@ from image_classification import classify_image
 
 class SQSApi:
 
-    def __init__(self, access_key, secret_access_key, region) -> None:
+    def __init__(self) -> None:
         self.sqs = boto3.client(
             'sqs',
-            region_name=region,
-            aws_access_key_id=access_key,
-            aws_secret_access_key=secret_access_key
+            region_name=os.environ.get('REGION'),
+            aws_access_key_id=os.environ.get('AWS_ACCESS_KEY'),
+            aws_secret_access_key=os.environ.get('AWS_SECRET_ACCESS_KEY')
         )
 
     def sendMessage(self, queue_url, message_body):
@@ -51,26 +51,21 @@ class SQSApi:
 
 if __name__ == "__main__":
     load_dotenv()
-
-    AWS_ACCESS_KEY = os.getenv('AWS_ACCESS_KEY')
-    AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
-    REGION = os.getenv('REGION')
-
-    run = SQSApi(AWS_ACCESS_KEY, AWS_SECRET_ACCESS_KEY, REGION)
+    run = SQSApi()
 
     s3 = boto3.client(
         's3',
-        region_name=REGION,
-        aws_access_key_id=AWS_ACCESS_KEY,
-        aws_secret_access_key=AWS_SECRET_ACCESS_KEY
+        region_name=os.environ.get('REGION'),
+        aws_access_key_id=os.environ.get('AWS_ACCESS_KEY'),
+        aws_secret_access_key=os.environ.get('AWS_SECRET_ACCESS_KEY')
     )
 
     print('Initialized boto3 clients.')
 
-    request_queue_url = os.getenv('REQUEST_QUEUE_URL')
-    response_queue_url = os.getenv('RESPONSE_QUEUE_URL')
-    input_bucket_name = os.getenv('INPUT_BUCKET')
-    output_bucket_name = os.getenv('OUTPUT_BUCKET')
+    request_queue_url = os.environ.get('REQUEST_QUEUE_URL')
+    response_queue_url = os.environ.get('RESPONSE_QUEUE_URL')
+    input_bucket_name = os.environ.get('INPUT_BUCKET')
+    output_bucket_name = os.environ.get('OUTPUT_BUCKET')
 
     # receive message from the queue
     while True:

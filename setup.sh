@@ -7,3 +7,5 @@ echo "export GOPATH=$HOME/go" >> ~/.bashrc
 echo "export GOROOT=/usr/local/go" >> ~/.bashrc
 echo "export PATH=$PATH:$GOPATH/bin:$GOROOT/bin" >> ~/.bashrc
 source ~/.bashrc
+
+python3 -m pip install -r apptier/requirements.txt  --no-cache-dir
