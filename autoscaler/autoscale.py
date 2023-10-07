@@ -24,9 +24,8 @@ class AutoScale:
         self.sqs_client = boto3.client('sqs', region_name=config.get('AWS_DEFAULT_REGION'),
                                        aws_access_key_id=config.get('AWS_ACCESS_KEY_ID'),
                                        aws_secret_access_key=config.get('AWS_SECRET_ACCESS_KEY'))
-        self.user_script = """
-        cd /home/ubuntu/Project-IaaS/apptier; git pull; nohup python3 apptier.py &
-        """
+        self.user_script = '''#!/bin/bash 
+        cd /home/ubuntu/Project-IaaS/apptier; git pull; nohup python3 apptier.py &'''
 
     def create_instance(self, iid):
         try:
@@ -80,7 +79,7 @@ class AutoScale:
                 InstanceIds=[
                     self.instance_map[iid],
                 ],
-                DryRun=True
+                DryRun=False
             )
             if response['ResponseMetadata']['HTTPStatusCode'] == 200:
                 instance_id = response['Instances'][0]['InstanceId']
@@ -100,7 +99,6 @@ class AutoScale:
             self.create_instance(current)
             if current >= MAX_INSTANCES:
                 return current
-            time.sleep(15)
         return current
 
     def scaledown(self, current, required):
@@ -109,7 +107,6 @@ class AutoScale:
             current -= 1
             if current <= MIN_INSTANCES:
                 return current
-            time.sleep(15)
         return current
 
     def get_total_msgs(self):
