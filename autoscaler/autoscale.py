@@ -151,13 +151,13 @@ def main():
         total_msgs = auto_scale_obj.get_total_msgs()
         if total_msgs > current_instance_count:
             if current_instance_count == MAX_INSTANCES:
-                print("Max limit reached")
+                print("Max limit reached of %s instance" % current_instance_count)
             else:
                 print(f"Messages in Input Queue: {total_msgs}. Scaling Up!")
                 current_instance_count = auto_scale_obj.scaleup(current_instance_count, total_msgs)
         elif total_msgs < current_instance_count:
             if current_instance_count == MIN_INSTANCES:
-                print("Min limit reached")
+                print("Min limit reached of %s instance" % current_instance_count)
             else:
                 print(f"Messages in Input Queue: {total_msgs}. Scaling Down!")
                 current_instance_count = auto_scale_obj.scaledown(current_instance_count, total_msgs)
