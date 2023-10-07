@@ -25,5 +25,6 @@ def classify_image(url):
         labels = json.load(f)
     result = labels[np.array(predicted)[0]]
     img_name = url.split("/")[-1]
-    save_name = f"{img_name},{result}"
-    return save_name.split(".")[0], result
+    img_name = img_name.split(".")[0]
+    save_name = f"{img_name}, {result}"
+    return save_name, result
