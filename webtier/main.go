@@ -172,7 +172,7 @@ func uploadImage(w http.ResponseWriter, r *http.Request, client *sqs.Client) {
 	base64image, err := convertImage(file)
 	imageHash := md5.Sum([]byte(base64image))
 
-	requestQueue := "Request.fifo"
+	requestQueue := "request_queue.fifo"
 	gQInput := &sqs.GetQueueUrlInput{
 		QueueName: &requestQueue,
 	}
@@ -214,7 +214,7 @@ func uploadImage(w http.ResponseWriter, r *http.Request, client *sqs.Client) {
 
 	fmt.Println("Sent message with ID: " + *resp.MessageId)
 
-	responseQueue := "Response.fifo"
+	responseQueue := "response_queue.fifo"
 	gQInput = &sqs.GetQueueUrlInput{
 		QueueName: &responseQueue,
 	}
@@ -239,7 +239,6 @@ func uploadImage(w http.ResponseWriter, r *http.Request, client *sqs.Client) {
 			},
 			QueueUrl:            responseQueueURL,
 			MaxNumberOfMessages: 10,
-			VisibilityTimeout:   int32(60),
 		}
 		msgResult, _ := GetMessages(context.TODO(), client, gMInput)
 
