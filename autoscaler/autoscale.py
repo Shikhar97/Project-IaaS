@@ -25,7 +25,7 @@ class AutoScale:
                                        aws_access_key_id=config.get('AWS_ACCESS_KEY_ID'),
                                        aws_secret_access_key=config.get('AWS_SECRET_ACCESS_KEY'))
         self.user_script = """
-        cd /home/ubuntu/Project-IaaS/apptier; python3 apptier.py &&
+        cd /home/ubuntu/Project-IaaS/apptier; nohup python3 apptier.py &
         """
 
     def create_instance(self, iid):
