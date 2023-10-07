@@ -85,7 +85,7 @@ if __name__ == "__main__":
 
         # If there is any message in the request queue
         if 'Messages' in request_queue_response and len(request_queue_response['Messages']) > 0:
-
+            print('Message in the request queue found')
             message_body = json.loads(request_queue_response['Messages'][0]['Body'])
             filename = message_body["name"]
             encoded_image = message_body["encoded_image"]
