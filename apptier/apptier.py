@@ -91,9 +91,9 @@ if __name__ == "__main__":
 
             message_body = json.loads(request_queue_response['Messages'][0]['Body'])
             print('message body', message_body)
-            filename = message_body["Name"]
-            encoded_image = message_body["EncodedImage"]
-            image_hash = message_body["Hash"]
+            filename = message_body["name"]
+            encoded_image = message_body["encoded_image"]
+            image_hash = message_body["hash"]
             print('image_name', filename)
 
             with open("/tmp/%s" % filename, "wb") as fh:
