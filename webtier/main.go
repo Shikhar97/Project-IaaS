@@ -79,7 +79,7 @@ func RemoveMessage(c context.Context, api SQSApi, input *sqs.DeleteMessageInput)
 func init() {
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
 }
 func main() {
@@ -129,7 +129,7 @@ func serverCheck(w http.ResponseWriter, r *http.Request) {
 	resp["message"] = "Status OK"
 	jsonResp, err := json.Marshal(resp)
 	if err != nil {
-		log.Fatalf("Error happened in JSON marshal. Err: %s", err)
+		log.Println("Error happened in JSON marshal. Err: %s", err)
 	}
 	w.Write(jsonResp)
 	log.Println("Server is up")
@@ -189,11 +189,8 @@ func uploadImage(w http.ResponseWriter, r *http.Request, client *sqs.Client) {
 		resp := make(map[string]string)
 		resp["error"] = "" + err.Error()
 		jsonResp, _ := json.Marshal(resp)
-		_, err := w.Write(jsonResp)
-		if err != nil {
-			return
-		}
-		log.Fatal(err)
+		w.Write(jsonResp)
+		log.Println(err)
 		return
 	}
 	defer file.Close()
@@ -206,7 +203,7 @@ func uploadImage(w http.ResponseWriter, r *http.Request, client *sqs.Client) {
 		resp["error"] = "" + err.Error()
 		jsonResp, _ := json.Marshal(resp)
 		w.Write(jsonResp)
-		log.Fatal(err)
+		log.Println(err)
 		return
 	}
 	imageHash := md5.Sum([]byte(base64image))
