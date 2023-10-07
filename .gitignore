@@ -156,3 +156,4 @@ dist
 
 /webtier/vendor/
 /webtier/webtier
+.DS_Store
