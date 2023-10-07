@@ -26,4 +26,4 @@ def classify_image(url):
     result = labels[np.array(predicted)[0]]
     img_name = url.split("/")[-1]
     save_name = f"{img_name},{result}"
-    return save_name, result
+    return save_name.split(".")[0], result
