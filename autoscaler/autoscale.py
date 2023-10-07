@@ -10,7 +10,7 @@ MAX_INSTANCES = 20
 
 class AutoScale:
     def __init__(self, config):
-        self.image_ami_id = 'ami-09c6ef0459a2ff40e'
+        self.image_ami_id = 'ami-064784d3c4a69e13f'
         self.instance_type = 't2.micro'
         self.subnet_id = "subnet-09d6065e5b1bce424"
         self.key_name = 'cc_project1'
@@ -25,7 +25,7 @@ class AutoScale:
                                        aws_access_key_id=config.get('AWS_ACCESS_KEY_ID'),
                                        aws_secret_access_key=config.get('AWS_SECRET_ACCESS_KEY'))
         self.user_script = """
-        cd /home/ubuntu/Project-IaaS/apptier; nohup python3 apptier.py &
+        cd /home/ubuntu/Project-IaaS/apptier; git pull; nohup python3 apptier.py &
         """
 
     def create_instance(self, iid):
@@ -95,23 +95,21 @@ class AutoScale:
             return False
 
     def scaleup(self, current, required):
-        if required >= MAX_INSTANCES:
-            return current
-
         while current <= required:
-            self.create_instance(current)
             current += 1
-            time.sleep(60)
+            self.create_instance(current)
+            if current >= MAX_INSTANCES:
+                return current
+            time.sleep(15)
         return current
 
     def scaledown(self, current, required):
-        if required <= MIN_INSTANCES:
-            return current
-
         while current >= required:
             self.remove_instance(current)
             current -= 1
-            time.sleep(60)
+            if current <= MIN_INSTANCES:
+                return current
+            time.sleep(15)
         return current
 
     def get_total_msgs(self):
