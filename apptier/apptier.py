@@ -73,8 +73,8 @@ if __name__ == "__main__":
     output_bucket_name = config.get('OUTPUT_BUCKET')
 
     while True:
-        # Polling every 1 seconds to check for messages
-        time.sleep(1)
+        # Polling every 60 seconds to check for messages
+        time.sleep(60)
         request_queue_response = {}
 
         try:

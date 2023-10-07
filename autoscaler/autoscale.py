@@ -120,24 +120,6 @@ class AutoScale:
             print(f"Failed to get queue attributes: {e}")
             return 1
 
-    # def get_num_of_instances(self):
-    #     try:
-    #         response = self.ec2_client.describe_instances(
-    #             Filters=[
-    #                 {
-    #                     "ImageId":  self.image_ami_id
-    #                 },
-    #             ],
-    #             DryRun=True,
-    #         )
-    #         running_instances = [i for i in instances['InstanceStatuses'] if
-    #                              i['InstanceState']['Name'] in ('pending', 'running')]
-    #         total_running_instances = len(running_instances)
-    #         return total_running_instances
-    #     except Exception as e:
-    #         print(f"Failed to get instance status: {e}")
-    #         return None
-
 
 def main():
     config = dotenv_values()
