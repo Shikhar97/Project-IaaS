@@ -1,6 +1,8 @@
 import os
 import time
 import json
+import uuid
+
 import boto3
 import base64
 
@@ -25,6 +27,7 @@ class SQSApi:
         response = self.sqs.send_message(
             QueueUrl=queue_url,
             MessageBody=json.dumps(message_body),
+            MessageGroupId=str(uuid.uuid1())
         )
 
         return response
@@ -86,8 +89,8 @@ if __name__ == "__main__":
         # do image classification
         if 'Messages' in request_queue_response and len(request_queue_response['Messages']) > 0:
 
-            message_body = request_queue_response['Messages'][0]['Body']
-
+            message_body = json.loads(request_queue_response['Messages'][0]['Body'])
+            print('message body', message_body)
             filename = message_body["Name"]
             encoded_image = message_body["EncodedImage"]
             image_hash = message_body["Hash"]

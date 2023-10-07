@@ -17,6 +17,7 @@ import (
 	"image/png"
 	"io"
 	"log"
+	"math/rand"
 	"mime/multipart"
 	"net/http"
 	"os"
@@ -155,13 +156,23 @@ func convertImage(file multipart.File) (string, error) {
 	imgBase64Str := base64.StdEncoding.EncodeToString(data)
 	return imgBase64Str, nil
 }
+
+func RandStringBytes(n int) string {
+	const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	b := make([]byte, n)
+	for i := range b {
+		b[i] = letterBytes[rand.Intn(len(letterBytes))]
+	}
+	return string(b)
+}
+
 func uploadImage(w http.ResponseWriter, r *http.Request, client *sqs.Client) {
 	file, hdr, err := r.FormFile("myfile")
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Header().Set("Content-Type", "application/json")
 		resp := make(map[string]string)
-		resp["message"] = "%q" + err.Error()
+		resp["message"] = "" + err.Error()
 		jsonResp, _ := json.Marshal(resp)
 		w.Write(jsonResp)
 		log.Fatal(err)
@@ -182,7 +193,7 @@ func uploadImage(w http.ResponseWriter, r *http.Request, client *sqs.Client) {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Header().Set("Content-Type", "application/json")
 		resp := make(map[string]string)
-		resp["message"] = "%q" + err.Error()
+		resp["message"] = "" + err.Error()
 		jsonResp, _ := json.Marshal(resp)
 		w.Write(jsonResp)
 		fmt.Println("Got an error getting the request queue URL:")
@@ -193,10 +204,11 @@ func uploadImage(w http.ResponseWriter, r *http.Request, client *sqs.Client) {
 	messageBody, _ := json.Marshal(
 		RequestQueueBody{hdr.Filename, base64image, hex.EncodeToString(imageHash[:])},
 	)
+	id := RandStringBytes(6)
 	sMInput := &sqs.SendMessageInput{
-		DelaySeconds: 1,
-		MessageBody:  aws.String(string(messageBody)),
-		QueueUrl:     requestqueueURL,
+		MessageBody:    aws.String(string(messageBody)),
+		MessageGroupId: &id,
+		QueueUrl:       requestqueueURL,
 	}
 
 	resp, err := SendMsg(context.TODO(), client, sMInput)
@@ -204,7 +216,7 @@ func uploadImage(w http.ResponseWriter, r *http.Request, client *sqs.Client) {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Header().Set("Content-Type", "application/json")
 		resp := make(map[string]string)
-		resp["message"] = "%q" + err.Error()
+		resp["message"] = "" + err.Error()
 		jsonResp, _ := json.Marshal(resp)
 		w.Write(jsonResp)
 		fmt.Println("Got an error sending the message:")
@@ -224,7 +236,7 @@ func uploadImage(w http.ResponseWriter, r *http.Request, client *sqs.Client) {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Header().Set("Content-Type", "application/json")
 		resp := make(map[string]string)
-		resp["message"] = "%q" + err.Error()
+		resp["message"] = "" + err.Error()
 		jsonResp, _ := json.Marshal(resp)
 		w.Write(jsonResp)
 		fmt.Println("Got an error getting the response queue URL:")
