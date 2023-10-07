@@ -4,7 +4,6 @@ import torchvision.transforms as transforms
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.models as models
-from urllib.request import urlopen
 from PIL import Image
 import numpy as np
 import json
@@ -13,8 +12,6 @@ import time
 
 
 def classify_image(url):
-    # url = str(sys.argv[1])
-    # img = Image.open(urlopen(url))
     img = Image.open(url)
 
     model = models.resnet18(pretrained=True)
@@ -28,7 +25,5 @@ def classify_image(url):
         labels = json.load(f)
     result = labels[np.array(predicted)[0]]
     img_name = url.split("/")[-1]
-    # save_name = f"({img_name}, {result})"
     save_name = f"{img_name},{result}"
-    print(f"{save_name}")
-    return result
+    return save_name, result

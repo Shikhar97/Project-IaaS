@@ -7,7 +7,6 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
@@ -25,17 +24,20 @@ import (
 	"syscall"
 )
 
+// ResponseQueueBody : structure for ResponseQueue
 type ResponseQueueBody struct {
 	Hash   string `json:"hash"`
 	Output string `json:"output"`
 }
 
+// RequestQueueBody : structure for RequestQueue
 type RequestQueueBody struct {
 	Name         string `json:"name"`
 	EncodedImage string `json:"encoded_image"`
 	Hash         string `json:"hash"`
 }
 
+// SQSApi : interface to implement SQSApi
 type SQSApi interface {
 	GetQueueUrl(ctx context.Context,
 		params *sqs.GetQueueUrlInput,
@@ -53,21 +55,27 @@ type SQSApi interface {
 		optFns ...func(*sqs.Options)) (*sqs.DeleteMessageOutput, error)
 }
 
+// GetQueueURL : function to get the Queue URL for a given AWS queue name
 func GetQueueURL(c context.Context, api SQSApi, input *sqs.GetQueueUrlInput) (*sqs.GetQueueUrlOutput, error) {
 	return api.GetQueueUrl(c, input)
 }
 
+// SendMsg : function to send a message to RequestQueue
 func SendMsg(c context.Context, api SQSApi, input *sqs.SendMessageInput) (*sqs.SendMessageOutput, error) {
 	return api.SendMessage(c, input)
 }
 
+// GetMessages : function to receive a message from ResponseQueue
 func GetMessages(c context.Context, api SQSApi, input *sqs.ReceiveMessageInput) (*sqs.ReceiveMessageOutput, error) {
 	return api.ReceiveMessage(c, input)
 }
+
+// RemoveMessage : function to remove a message from the ResponseQueue once read
 func RemoveMessage(c context.Context, api SQSApi, input *sqs.DeleteMessageInput) (*sqs.DeleteMessageOutput, error) {
 	return api.DeleteMessage(c, input)
 }
 
+// Load the environment variables from .env file
 func init() {
 	err := godotenv.Load()
 	if err != nil {
@@ -75,22 +83,23 @@ func init() {
 	}
 }
 func main() {
+	// Creating config to create a SQS Client
 	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion("us-east-1"))
 	if err != nil {
 		panic("configuration error, " + err.Error())
 	}
-
+	// Create a AWS SQS Client
 	awsSqsClient := sqs.NewFromConfig(cfg)
 
+	// Creating a http server on port 8001 to handle incoming requests
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", serverCheck)
 	mux.HandleFunc("/upload_image", func(writer http.ResponseWriter, request *http.Request) {
 		uploadImage(writer, request, awsSqsClient)
 	})
 
-	// Create a server instance
 	server := &http.Server{
-		Addr:    ":8001", // Change the port if needed
+		Addr:    ":8001",
 		Handler: mux,
 	}
 
@@ -100,18 +109,19 @@ func main() {
 		signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
 		<-c
 
-		fmt.Println("Shutting down gracefully...")
+		log.Println("Shutting down gracefully...")
 		if err := server.Close(); err != nil {
-			fmt.Printf("Error during server shutdown: %v\n", err)
+			log.Printf("Error during server shutdown: %v\n", err)
 		}
 	}()
 
-	fmt.Println("Server listening on :8001")
+	log.Println("Server listening on :8001")
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-		fmt.Printf("Error: %v\n", err)
+		log.Printf("Error: %v\n", err)
 	}
 }
 
+// function to return the status of the server
 func serverCheck(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
@@ -122,15 +132,15 @@ func serverCheck(w http.ResponseWriter, r *http.Request) {
 		log.Fatalf("Error happened in JSON marshal. Err: %s", err)
 	}
 	w.Write(jsonResp)
-	fmt.Println("Server is up")
+	log.Println("Server is up")
 	return
 }
 
-func convertImage(file multipart.File) (string, error) {
+// function to convert the image to base64 string
+func convertImage(file multipart.File) (string, string) {
 	data, err := io.ReadAll(file)
 	if err != nil {
-		log.Println(err)
-		return "", err
+		return "", err.Error()
 	}
 
 	// Encode as base64.
@@ -138,26 +148,30 @@ func convertImage(file multipart.File) (string, error) {
 
 	switch contentType {
 	case "image/png":
-		fmt.Println("Image type is already PNG.")
+		log.Println("Image type is already PNG.")
 	case "image/jpeg":
 		img, err := jpeg.Decode(bytes.NewReader(data))
 		if err != nil {
-			return "", fmt.Errorf("unable to decode jpeg: %w", err)
+			errorMsg := "unable to decode jpeg: " + err.Error()
+			return "", errorMsg
 		}
 
 		var buf bytes.Buffer
 		if err := png.Encode(&buf, img); err != nil {
-			return "", fmt.Errorf("unable to encode png: %w", err)
+			errorMsg := "unable to encode png: " + err.Error()
+			return "", errorMsg
 		}
 		data = buf.Bytes()
 	default:
-		return "", fmt.Errorf("unsupported content typo: %s", contentType)
+		errorMsg := "unsupported content typo: " + contentType
+		return "", errorMsg
 	}
 	imgBase64Str := base64.StdEncoding.EncodeToString(data)
-	return imgBase64Str, nil
+	return imgBase64Str, ""
 }
 
-func RandStringBytes(n int) string {
+// function to generate random string for Queue ID
+func randStringBytes(n int) string {
 	const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 	b := make([]byte, n)
 	for i := range b {
@@ -166,21 +180,35 @@ func RandStringBytes(n int) string {
 	return string(b)
 }
 
+// function to send the image to request queue and get a response back
 func uploadImage(w http.ResponseWriter, r *http.Request, client *sqs.Client) {
 	file, hdr, err := r.FormFile("myfile")
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Header().Set("Content-Type", "application/json")
 		resp := make(map[string]string)
-		resp["message"] = "" + err.Error()
+		resp["error"] = "" + err.Error()
 		jsonResp, _ := json.Marshal(resp)
-		w.Write(jsonResp)
+		_, err := w.Write(jsonResp)
+		if err != nil {
+			return
+		}
 		log.Fatal(err)
 		return
 	}
 	defer file.Close()
 
-	base64image, err := convertImage(file)
+	base64image, msg := convertImage(file)
+	if msg != "" {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Header().Set("Content-Type", "application/json")
+		resp := make(map[string]string)
+		resp["error"] = "" + err.Error()
+		jsonResp, _ := json.Marshal(resp)
+		w.Write(jsonResp)
+		log.Fatal(err)
+		return
+	}
 	imageHash := md5.Sum([]byte(base64image))
 
 	requestQueue := "request_queue.fifo"
@@ -193,18 +221,18 @@ func uploadImage(w http.ResponseWriter, r *http.Request, client *sqs.Client) {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Header().Set("Content-Type", "application/json")
 		resp := make(map[string]string)
-		resp["message"] = "" + err.Error()
+		resp["error"] = "" + err.Error()
 		jsonResp, _ := json.Marshal(resp)
 		w.Write(jsonResp)
-		fmt.Println("Got an error getting the request queue URL:")
-		fmt.Println(err)
+		log.Println("Got an error getting the request queue URL:")
+		log.Println(err)
 		return
 	}
 	requestqueueURL := result.QueueUrl
 	messageBody, _ := json.Marshal(
 		RequestQueueBody{hdr.Filename, base64image, hex.EncodeToString(imageHash[:])},
 	)
-	id := RandStringBytes(6)
+	id := randStringBytes(6)
 	sMInput := &sqs.SendMessageInput{
 		MessageBody:    aws.String(string(messageBody)),
 		MessageGroupId: &id,
@@ -216,15 +244,15 @@ func uploadImage(w http.ResponseWriter, r *http.Request, client *sqs.Client) {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Header().Set("Content-Type", "application/json")
 		resp := make(map[string]string)
-		resp["message"] = "" + err.Error()
+		resp["error"] = "" + err.Error()
 		jsonResp, _ := json.Marshal(resp)
 		w.Write(jsonResp)
-		fmt.Println("Got an error sending the message:")
-		fmt.Println(err)
+		log.Println("Got an error sending the message:")
+		log.Println(err)
 		return
 	}
 
-	fmt.Println("Sent message with ID: " + *resp.MessageId)
+	log.Println("Sent message with ID: " + *resp.MessageId)
 
 	responseQueue := "response_queue.fifo"
 	gQInput = &sqs.GetQueueUrlInput{
@@ -236,11 +264,11 @@ func uploadImage(w http.ResponseWriter, r *http.Request, client *sqs.Client) {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Header().Set("Content-Type", "application/json")
 		resp := make(map[string]string)
-		resp["message"] = "" + err.Error()
+		resp["error"] = "" + err.Error()
 		jsonResp, _ := json.Marshal(resp)
 		w.Write(jsonResp)
-		fmt.Println("Got an error getting the response queue URL:")
-		fmt.Println(err)
+		log.Println("Got an error getting the response queue URL:")
+		log.Println(err)
 		return
 	}
 	responseQueueURL := result.QueueUrl
@@ -259,7 +287,7 @@ func uploadImage(w http.ResponseWriter, r *http.Request, client *sqs.Client) {
 				var responseBody ResponseQueueBody
 				err = json.Unmarshal([]byte(*message.Body), &responseBody)
 				if err != nil {
-					fmt.Println(err)
+					log.Println(err)
 					continue
 				}
 				if responseBody.Hash == hex.EncodeToString(imageHash[:]) {
@@ -271,11 +299,11 @@ func uploadImage(w http.ResponseWriter, r *http.Request, client *sqs.Client) {
 					w.WriteHeader(http.StatusOK)
 					w.Header().Set("Content-Type", "application/json")
 					resp := make(map[string]string)
-					resp["message"] = ""
+					resp["image_name"] = hdr.Filename
+					resp["class"] = responseBody.Output
 					jsonResp, _ := json.Marshal(resp)
 					w.Write(jsonResp)
 					_, err = RemoveMessage(context.TODO(), client, dMInput)
-					fmt.Println("Deleted message from queue with URL " + *responseQueueURL)
 					return
 				}
 			}

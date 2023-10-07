@@ -6,8 +6,7 @@ import uuid
 import boto3
 import base64
 
-from dotenv import load_dotenv, find_dotenv, dotenv_values
-
+from dotenv import dotenv_values
 
 from image_classification import classify_image
 
@@ -15,6 +14,7 @@ from image_classification import classify_image
 class SQSApi:
 
     def __init__(self, conf) -> None:
+        # Initializing AWS SQS client
         self.sqs = boto3.client(
             'sqs',
             region_name=conf.get('AWS_DEFAULT_REGION'),
@@ -23,6 +23,7 @@ class SQSApi:
         )
         print('Initialized SQS client')
 
+    # Function to send messages to response queue
     def sendMessage(self, queue_url, message_body):
         response = self.sqs.send_message(
             QueueUrl=queue_url,
@@ -32,6 +33,7 @@ class SQSApi:
 
         return response
 
+    # Function to receive messages from request queue
     def receiveMessage(self, queue_url):
         response = self.sqs.receive_message(
             QueueUrl=queue_url,
@@ -43,22 +45,19 @@ class SQSApi:
 
         return response
 
+    # Function to delete messages after it reads from request queue
     def deleteMessage(self, queue_url, receipt_handle):
         self.sqs.delete_message(
             QueueUrl=queue_url,
             ReceiptHandle=receipt_handle
         )
 
-    def putBucket(self, s3, bucket_name, image_name, result):
-        response = s3.put_object(Bucket=bucket_name, Key=image_name, Body=result)
-        return response
-
 
 if __name__ == "__main__":
     config = dotenv_values()
 
     run = SQSApi(config)
-
+    # Initializing S3 bucket client
     s3 = boto3.client(
         's3',
         region_name=config.get('AWS_DEFAULT_REGION'),
@@ -73,37 +72,34 @@ if __name__ == "__main__":
     input_bucket_name = config.get('INPUT_BUCKET')
     output_bucket_name = config.get('OUTPUT_BUCKET')
 
-    # receive message from the queue
     while True:
-        print('Running next iteration.')
-        time.sleep(5)
+        # Polling every 1 seconds to check for messages
+        time.sleep(1)
         request_queue_response = {}
 
         try:
             request_queue_response = run.receiveMessage(request_queue_url)
-            print('request queue response', request_queue_response)
         except Exception as e:
             print('Something went wrong with request queue response receive message.')
             continue
 
-        # do image classification
+        # If there is any message in the request queue
         if 'Messages' in request_queue_response and len(request_queue_response['Messages']) > 0:
 
             message_body = json.loads(request_queue_response['Messages'][0]['Body'])
-            print('message body', message_body)
             filename = message_body["name"]
             encoded_image = message_body["encoded_image"]
             image_hash = message_body["hash"]
-            print('image_name', filename)
 
+            # Saving the decoded file to temp file
             with open("/tmp/%s" % filename, "wb") as fh:
                 fh.write(base64.b64decode(encoded_image))
 
-            result = classify_image("/tmp/%s" % filename)
-            print('result', result)
+            # call image classification function
+            value, result = classify_image("/tmp/%s" % filename)
 
+            # uploading file name
             s3.upload_file("/tmp/%s" % filename, input_bucket_name, filename)
-            print('Uploaded image to output S3 bucket.')
 
             # send message to response queue
             response = run.sendMessage(
@@ -112,12 +108,10 @@ if __name__ == "__main__":
                     "Hash": image_hash,
                     "Output": result
                 })
-            print(response['MessageId'])
-            print('Sent message to response queue.')
-            s3.put_object(Bucket=output_bucket_name, Key=filename.split(".")[0], Body=result)
+            # uploading file name and result
+            s3.put_object(Bucket=output_bucket_name, Key=filename.split(".")[0], Body=value)
 
             # delete the message from the request queue
             run.deleteMessage(request_queue_url, request_queue_response['Messages'][0]['ReceiptHandle'])
-            print('Deleted message from request queue.')
         else:
             print('No message in the request queue.')
