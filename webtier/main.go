@@ -294,12 +294,8 @@ func uploadImage(w http.ResponseWriter, r *http.Request, client *sqs.Client) {
 					}
 
 					w.WriteHeader(http.StatusOK)
-					w.Header().Set("Content-Type", "application/json")
-					resp := make(map[string]string)
-					resp["image_name"] = hdr.Filename
-					resp["class"] = responseBody.Output
-					jsonResp, _ := json.Marshal(resp)
-					w.Write(jsonResp)
+					w.Header().Set("Content-Type", "text/plain")
+					w.Write([]byte(responseBody.Output))
 					_, err = RemoveMessage(context.TODO(), client, dMInput)
 					return
 				}

@@ -32,7 +32,7 @@ class AutoScale:
         try:
             block_device = [
                 {
-                    'DeviceName': "ebs%s" % iid,
+                    'DeviceName': "/dev/sdf",
                     'Ebs': {
                         'DeleteOnTermination': True,
                         'VolumeSize': 20,
