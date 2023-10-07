@@ -82,11 +82,10 @@ class AutoScale:
                 DryRun=False
             )
             if response['ResponseMetadata']['HTTPStatusCode'] == 200:
-                instance_id = response['Instances'][0]['InstanceId']
                 self.ec2_client.get_waiter('instance_stopped').wait(
-                    InstanceIds=[instance_id]
+                    InstanceIds=[self.instance_map[iid]]
                 )
-                print('Success! instance:', instance_id, 'is stopped')
+                print('Success! instance:', self.instance_map[iid], 'is stopped')
                 return True
             return False
         except Exception as e:
