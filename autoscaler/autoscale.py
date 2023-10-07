@@ -95,7 +95,7 @@ class AutoScale:
             return False
 
     def scaleup(self, current, required):
-        while current <= required:
+        while current <= required and current < MAX_INSTANCES:
             current += 1
             self.create_instance(current)
             if current >= MAX_INSTANCES:
@@ -104,7 +104,7 @@ class AutoScale:
         return current
 
     def scaledown(self, current, required):
-        while current >= required:
+        while current >= required and current > MIN_INSTANCES:
             self.remove_instance(current)
             current -= 1
             if current <= MIN_INSTANCES:
@@ -150,11 +150,17 @@ def main():
     while True:
         total_msgs = auto_scale_obj.get_total_msgs()
         if total_msgs > current_instance_count:
-            print(f"Messages in Input Queue: {total_msgs}. Scaling Up!")
-            current_instance_count = auto_scale_obj.scaleup(current_instance_count, total_msgs)
+            if current_instance_count == MAX_INSTANCES:
+                print("Max limit reached")
+            else:
+                print(f"Messages in Input Queue: {total_msgs}. Scaling Up!")
+                current_instance_count = auto_scale_obj.scaleup(current_instance_count, total_msgs)
         elif total_msgs < current_instance_count:
-            print(f"Messages in Input Queue: {total_msgs}. Scaling Down!")
-            current_instance_count = auto_scale_obj.scaledown(current_instance_count, total_msgs)
+            if current_instance_count == MIN_INSTANCES:
+                print("Min limit reached")
+            else:
+                print(f"Messages in Input Queue: {total_msgs}. Scaling Down!")
+                current_instance_count = auto_scale_obj.scaledown(current_instance_count, total_msgs)
         else:
             print("Load is OK")
 
