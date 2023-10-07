@@ -194,7 +194,7 @@ func uploadImage(w http.ResponseWriter, r *http.Request, client *sqs.Client) {
 		RequestQueueBody{hdr.Filename, base64image, hex.EncodeToString(imageHash[:])},
 	)
 	sMInput := &sqs.SendMessageInput{
-		DelaySeconds: 10,
+		DelaySeconds: 1,
 		MessageBody:  aws.String(string(messageBody)),
 		QueueUrl:     requestqueueURL,
 	}
