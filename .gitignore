@@ -155,3 +155,4 @@ dist
 .pnp.*
 
 /webtier/vendor/
+/webtier/webtier
