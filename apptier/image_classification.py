@@ -21,7 +21,7 @@ def classify_image(url):
     outputs = model(img_tensor)
     _, predicted = torch.max(outputs.data, 1)
 
-    with open('./imagenet-labels.json') as f:
+    with open('/home/ubuntu/Project-IaaS/apptier/imagenet-labels.json') as f:
         labels = json.load(f)
     result = labels[np.array(predicted)[0]]
     img_name = url.split("/")[-1]
