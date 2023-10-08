@@ -6,6 +6,7 @@ from dotenv import dotenv_values
 
 MIN_INSTANCES = 1
 MAX_INSTANCES = 20
+SCALE_FACTOR = 5
 
 
 class AutoScale:
@@ -24,10 +25,6 @@ class AutoScale:
         self.sqs_client = boto3.client('sqs', region_name=config.get('AWS_DEFAULT_REGION'),
                                        aws_access_key_id=config.get('AWS_ACCESS_KEY_ID'),
                                        aws_secret_access_key=config.get('AWS_SECRET_ACCESS_KEY'))
-        self.user_script = '''
-        #!/bin/bash 
-        cd /home/ubuntu/Project-IaaS/apptier; git pull; nohup python3 apptier.py &
-        '''
 
     def create_instance(self, iid):
         try:
@@ -46,7 +43,6 @@ class AutoScale:
                                                      InstanceType=self.instance_type,
                                                      SubnetId=self.subnet_id,
                                                      SecurityGroupIds=[self.security_group],
-                                                     UserData=self.user_script,
                                                      MinCount=1, MaxCount=1,
                                                      BlockDeviceMappings=block_device,
                                                      KeyName=self.key_name,
@@ -126,22 +122,23 @@ def main():
     current_instance_count = 1
     while True:
         total_msgs = auto_scale_obj.get_total_msgs()
-        if total_msgs > current_instance_count:
+        required_instance_count = int(total_msgs / SCALE_FACTOR)
+        if required_instance_count > current_instance_count:
             if current_instance_count == MAX_INSTANCES:
                 print("Max limit reached of %s instance" % current_instance_count)
             else:
                 print(f"Messages in Input Queue: {total_msgs}. Scaling Up!")
-                current_instance_count = auto_scale_obj.scaleup(current_instance_count, total_msgs)
-        elif total_msgs < current_instance_count:
+                current_instance_count = auto_scale_obj.scaleup(current_instance_count, required_instance_count)
+        elif required_instance_count < current_instance_count:
             if current_instance_count == MIN_INSTANCES:
                 print("Min limit reached of %s instance" % current_instance_count)
             else:
                 print(f"Messages in Input Queue: {total_msgs}. Scaling Down!")
-                current_instance_count = auto_scale_obj.scaledown(current_instance_count, total_msgs)
+                current_instance_count = auto_scale_obj.scaledown(current_instance_count, required_instance_count)
         else:
             print("Load is OK")
 
-        time.sleep(60)
+        time.sleep(30)
 
 
 if __name__ == "__main__":
