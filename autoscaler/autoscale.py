@@ -24,8 +24,10 @@ class AutoScale:
         self.sqs_client = boto3.client('sqs', region_name=config.get('AWS_DEFAULT_REGION'),
                                        aws_access_key_id=config.get('AWS_ACCESS_KEY_ID'),
                                        aws_secret_access_key=config.get('AWS_SECRET_ACCESS_KEY'))
-        self.user_script = '''#!/bin/bash 
-        cd /home/ubuntu/Project-IaaS/apptier; git pull; nohup python3 apptier.py &'''
+        self.user_script = '''
+        #!/bin/bash 
+        cd /home/ubuntu/Project-IaaS/apptier; git pull; nohup python3 apptier.py &
+        '''
 
     def create_instance(self, iid):
         try:
@@ -82,10 +84,7 @@ class AutoScale:
                 DryRun=False
             )
             if response['ResponseMetadata']['HTTPStatusCode'] == 200:
-                self.ec2_client.get_waiter('instance_stopped').wait(
-                    InstanceIds=[self.instance_map[iid]]
-                )
-                print('Success! instance:', self.instance_map[iid], 'is stopped')
+                print('Success! instance:', self.instance_map[iid], 'is terminated')
                 return True
             return False
         except Exception as e:
@@ -142,7 +141,7 @@ def main():
         else:
             print("Load is OK")
 
-        time.sleep(5)
+        time.sleep(60)
 
 
 if __name__ == "__main__":
