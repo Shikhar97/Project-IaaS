@@ -17,7 +17,7 @@ class AutoScale:
         self.subnet_id = "subnet-09d6065e5b1bce424"
         self.key_name = 'cc_project1'
         self.security_group = "sg-0afd4e0aeafb5b473"
-        self.availability_zone = "us-east-1c"
+        self.availability_zone = "us-east-1a"
         self.instance_map = {}
         self.request_queue_url = config.get('REQUEST_QUEUE_URL')
         self.ec2_client = boto3.client('ec2', region_name=config.get('AWS_DEFAULT_REGION'),
