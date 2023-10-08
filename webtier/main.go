@@ -275,8 +275,7 @@ func uploadImage(w http.ResponseWriter, r *http.Request, client *sqs.Client) {
 				string(types.QueueAttributeNameAll),
 			},
 			QueueUrl:            responseQueueURL,
-			MaxNumberOfMessages: 2,
-			WaitTimeSeconds:     5,
+			MaxNumberOfMessages: 10,
 		}
 		msgResult, _ := GetMessages(context.TODO(), client, gMInput)
 
