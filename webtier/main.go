@@ -277,7 +277,16 @@ func uploadImage(w http.ResponseWriter, r *http.Request, client *sqs.Client) {
 			QueueUrl:            responseQueueURL,
 			MaxNumberOfMessages: 10,
 		}
-		msgResult, _ := GetMessages(context.TODO(), client, gMInput)
+		msgResult, err := GetMessages(context.TODO(), client, gMInput)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Header().Set("Content-Type", "application/json")
+			resp := make(map[string]string)
+			resp["error"] = "" + err.Error()
+			jsonResp, _ := json.Marshal(resp)
+			w.Write(jsonResp)
+			return
+		}
 
 		if msgResult.Messages != nil {
 			for _, message := range msgResult.Messages {

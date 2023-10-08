@@ -6,7 +6,7 @@ from dotenv import dotenv_values
 
 MIN_INSTANCES = 1
 MAX_INSTANCES = 20
-SCALE_FACTOR = 5
+SCALE_FACTOR = 3
 
 
 class AutoScale:

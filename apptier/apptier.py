@@ -73,45 +73,43 @@ if __name__ == "__main__":
     output_bucket_name = config.get('OUTPUT_BUCKET')
 
     while True:
-        # Polling every 5 seconds to check for messages
-        time.sleep(5)
-        request_queue_response = {}
-
         try:
             request_queue_response = run.receiveMessage(request_queue_url)
+
+            # If there is any message in the request queue
+            if 'Messages' in request_queue_response and len(request_queue_response['Messages']) > 0:
+                print('Message in the request queue found')
+                message_body = json.loads(request_queue_response['Messages'][0]['Body'])
+                filename = message_body["name"]
+                encoded_image = message_body["encoded_image"]
+                image_hash = message_body["hash"]
+
+                # Saving the decoded file to temp file
+                with open("/tmp/%s" % filename, "wb") as fh:
+                    fh.write(base64.b64decode(encoded_image))
+
+                # call image classification function
+                value, result = classify_image("/tmp/%s" % filename)
+
+                # uploading file name
+                s3.upload_file("/tmp/%s" % filename, input_bucket_name, filename)
+
+                # send message to response queue
+                response = run.sendMessage(
+                    response_queue_url,
+                    {
+                        "Hash": image_hash,
+                        "Output": result
+                    })
+                # uploading file name and result
+                s3.put_object(Bucket=output_bucket_name, Key=filename.split(".")[0], Body=value)
+
+                # delete the message from the request queue
+                run.deleteMessage(request_queue_url, request_queue_response['Messages'][0]['ReceiptHandle'])
+            else:
+                print('No message in the request queue.')
+                # Polling every 60 seconds to check for messages
+                time.sleep(60)
         except Exception as e:
             print('Something went wrong with request queue response receive message.')
             continue
-
-        # If there is any message in the request queue
-        if 'Messages' in request_queue_response and len(request_queue_response['Messages']) > 0:
-            print('Message in the request queue found')
-            message_body = json.loads(request_queue_response['Messages'][0]['Body'])
-            filename = message_body["name"]
-            encoded_image = message_body["encoded_image"]
-            image_hash = message_body["hash"]
-
-            # Saving the decoded file to temp file
-            with open("/tmp/%s" % filename, "wb") as fh:
-                fh.write(base64.b64decode(encoded_image))
-
-            # call image classification function
-            value, result = classify_image("/tmp/%s" % filename)
-
-            # uploading file name
-            s3.upload_file("/tmp/%s" % filename, input_bucket_name, filename)
-
-            # send message to response queue
-            response = run.sendMessage(
-                response_queue_url,
-                {
-                    "Hash": image_hash,
-                    "Output": result
-                })
-            # uploading file name and result
-            s3.put_object(Bucket=output_bucket_name, Key=filename.split(".")[0], Body=value)
-
-            # delete the message from the request queue
-            run.deleteMessage(request_queue_url, request_queue_response['Messages'][0]['ReceiptHandle'])
-        else:
-            print('No message in the request queue.')
