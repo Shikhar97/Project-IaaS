@@ -7,6 +7,7 @@ from dotenv import dotenv_values
 MIN_INSTANCES = 1
 MAX_INSTANCES = 20
 SCALE_FACTOR = 3
+COOLDOWN = 120
 
 
 class AutoScale:
@@ -129,12 +130,14 @@ def main():
             else:
                 print(f"Messages in Input Queue: {total_msgs}. Scaling Up!")
                 current_instance_count = auto_scale_obj.scaleup(current_instance_count, required_instance_count)
+                time.sleep(COOLDOWN)
         elif required_instance_count < current_instance_count:
             if current_instance_count == MIN_INSTANCES:
                 print("Min limit reached of %s instance" % current_instance_count)
             else:
                 print(f"Messages in Input Queue: {total_msgs}. Scaling Down!")
                 current_instance_count = auto_scale_obj.scaledown(current_instance_count, required_instance_count)
+                time.sleep(COOLDOWN)
         else:
             print("Load is OK")
             time.sleep(60)
