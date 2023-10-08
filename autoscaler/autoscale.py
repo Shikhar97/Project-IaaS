@@ -60,9 +60,9 @@ class AutoScale:
 
             if response['ResponseMetadata']['HTTPStatusCode'] == 200:
                 instance_id = response['Instances'][0]['InstanceId']
-                self.ec2_client.get_waiter('instance_running').wait(
-                    InstanceIds=[instance_id]
-                )
+                # self.ec2_client.get_waiter('instance_running').wait(
+                #     InstanceIds=[instance_id]
+                # )
                 print('Success! instance:', instance_id, 'is created and running')
                 self.instance_map[iid] = instance_id
                 return True
