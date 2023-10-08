@@ -37,44 +37,6 @@ type RequestQueueBody struct {
 	Hash         string `json:"hash"`
 }
 
-// SQSApi : interface to implement SQSApi
-type SQSApi interface {
-	GetQueueUrl(ctx context.Context,
-		params *sqs.GetQueueUrlInput,
-		optFns ...func(*sqs.Options)) (*sqs.GetQueueUrlOutput, error)
-
-	SendMessage(ctx context.Context,
-		params *sqs.SendMessageInput,
-		optFns ...func(*sqs.Options)) (*sqs.SendMessageOutput, error)
-
-	ReceiveMessage(ctx context.Context,
-		params *sqs.ReceiveMessageInput,
-		optFns ...func(*sqs.Options)) (*sqs.ReceiveMessageOutput, error)
-	DeleteMessage(ctx context.Context,
-		params *sqs.DeleteMessageInput,
-		optFns ...func(*sqs.Options)) (*sqs.DeleteMessageOutput, error)
-}
-
-// GetQueueURL : function to get the Queue URL for a given AWS queue name
-func GetQueueURL(c context.Context, api SQSApi, input *sqs.GetQueueUrlInput) (*sqs.GetQueueUrlOutput, error) {
-	return api.GetQueueUrl(c, input)
-}
-
-// SendMsg : function to send a message to RequestQueue
-func SendMsg(c context.Context, api SQSApi, input *sqs.SendMessageInput) (*sqs.SendMessageOutput, error) {
-	return api.SendMessage(c, input)
-}
-
-// GetMessages : function to receive a message from ResponseQueue
-func GetMessages(c context.Context, api SQSApi, input *sqs.ReceiveMessageInput) (*sqs.ReceiveMessageOutput, error) {
-	return api.ReceiveMessage(c, input)
-}
-
-// RemoveMessage : function to remove a message from the ResponseQueue once read
-func RemoveMessage(c context.Context, api SQSApi, input *sqs.DeleteMessageInput) (*sqs.DeleteMessageOutput, error) {
-	return api.DeleteMessage(c, input)
-}
-
 // Load the environment variables from .env file
 func init() {
 	err := godotenv.Load()
@@ -129,7 +91,7 @@ func serverCheck(w http.ResponseWriter, r *http.Request) {
 	resp["message"] = "Status OK"
 	jsonResp, err := json.Marshal(resp)
 	if err != nil {
-		log.Println("Error happened in JSON marshal. Err: %s", err)
+		log.Printf("Error happened in JSON marshal. Err: %s\n", err)
 	}
 	w.Write(jsonResp)
 	log.Println("Server is up")
@@ -213,7 +175,7 @@ func uploadImage(w http.ResponseWriter, r *http.Request, client *sqs.Client) {
 		QueueName: &requestQueue,
 	}
 
-	result, err := GetQueueURL(context.TODO(), client, gQInput)
+	result, err := client.GetQueueUrl(context.TODO(), gQInput)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Header().Set("Content-Type", "application/json")
@@ -225,7 +187,7 @@ func uploadImage(w http.ResponseWriter, r *http.Request, client *sqs.Client) {
 		log.Println(err)
 		return
 	}
-	requestqueueURL := result.QueueUrl
+	requestQueueURL := result.QueueUrl
 	messageBody, _ := json.Marshal(
 		RequestQueueBody{hdr.Filename, base64image, hex.EncodeToString(imageHash[:])},
 	)
@@ -233,10 +195,10 @@ func uploadImage(w http.ResponseWriter, r *http.Request, client *sqs.Client) {
 	sMInput := &sqs.SendMessageInput{
 		MessageBody:    aws.String(string(messageBody)),
 		MessageGroupId: &id,
-		QueueUrl:       requestqueueURL,
+		QueueUrl:       requestQueueURL,
 	}
 
-	resp, err := SendMsg(context.TODO(), client, sMInput)
+	resp, err := client.SendMessage(context.TODO(), sMInput)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Header().Set("Content-Type", "application/json")
@@ -256,7 +218,7 @@ func uploadImage(w http.ResponseWriter, r *http.Request, client *sqs.Client) {
 		QueueName: &responseQueue,
 	}
 
-	result, err = GetQueueURL(context.TODO(), client, gQInput)
+	result, err = client.GetQueueUrl(context.TODO(), gQInput)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Header().Set("Content-Type", "application/json")
@@ -277,7 +239,7 @@ func uploadImage(w http.ResponseWriter, r *http.Request, client *sqs.Client) {
 			QueueUrl:            responseQueueURL,
 			MaxNumberOfMessages: 10,
 		}
-		msgResult, err := GetMessages(context.TODO(), client, gMInput)
+		msgResult, err := client.ReceiveMessage(context.TODO(), gMInput)
 		if err != nil {
 			log.Println("Got an error receiving the message:")
 			log.Println(err)
@@ -300,7 +262,7 @@ func uploadImage(w http.ResponseWriter, r *http.Request, client *sqs.Client) {
 					w.WriteHeader(http.StatusOK)
 					w.Header().Set("Content-Type", "text/plain")
 					w.Write([]byte(responseBody.Output))
-					_, err = RemoveMessage(context.TODO(), client, dMInput)
+					_, err = client.DeleteMessage(context.TODO(), dMInput)
 					return
 				}
 			}
