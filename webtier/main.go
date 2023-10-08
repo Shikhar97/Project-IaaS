@@ -258,11 +258,13 @@ func uploadImage(w http.ResponseWriter, r *http.Request, client *sqs.Client) {
 						QueueUrl:      responseQueueURL,
 						ReceiptHandle: message.ReceiptHandle,
 					}
-
+					_, err := client.DeleteMessage(context.TODO(), dMInput)
+					if err != nil {
+						log.Println(err)
+					}
 					w.WriteHeader(http.StatusOK)
 					w.Header().Set("Content-Type", "text/plain")
 					w.Write([]byte(responseBody.Output))
-					_, err = client.DeleteMessage(context.TODO(), dMInput)
 					return
 				}
 			}
