@@ -275,7 +275,7 @@ func uploadImage(w http.ResponseWriter, r *http.Request, client *sqs.Client) {
 				string(types.QueueAttributeNameAll),
 			},
 			QueueUrl:            responseQueueURL,
-			MaxNumberOfMessages: 10,
+			MaxNumberOfMessages: 1,
 		}
 		msgResult, err := GetMessages(context.TODO(), client, gMInput)
 		if err != nil {
@@ -285,7 +285,8 @@ func uploadImage(w http.ResponseWriter, r *http.Request, client *sqs.Client) {
 			resp["error"] = "" + err.Error()
 			jsonResp, _ := json.Marshal(resp)
 			w.Write(jsonResp)
-			return
+			log.Println("Got an error receiving the message:")
+			log.Println(err)
 		}
 
 		if msgResult.Messages != nil {
