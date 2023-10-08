@@ -11,7 +11,7 @@ SCALE_FACTOR = 5
 
 class AutoScale:
     def __init__(self, config):
-        self.image_ami_id = 'ami-064784d3c4a69e13f'
+        self.image_ami_id = 'ami-06dcf31975972ef91'
         self.instance_type = 't2.micro'
         self.subnet_id = "subnet-09d6065e5b1bce424"
         self.key_name = 'cc_project1'
