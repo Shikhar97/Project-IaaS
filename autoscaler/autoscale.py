@@ -137,8 +137,7 @@ def main():
                 current_instance_count = auto_scale_obj.scaledown(current_instance_count, required_instance_count)
         else:
             print("Load is OK")
-
-        time.sleep(30)
+            time.sleep(60)
 
 
 if __name__ == "__main__":
