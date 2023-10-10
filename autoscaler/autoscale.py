@@ -128,23 +128,22 @@ def main():
     while True:
         total_msgs = auto_scale_obj.get_total_msgs()
         required_instance_count = int(total_msgs / SCALE_FACTOR)
-        if required_instance_count == 0:
-            print("Load is OK")
-            time.sleep(60)
-        elif required_instance_count > current_instance_count:
+        if required_instance_count > current_instance_count:
             if current_instance_count == MAX_INSTANCES:
                 print("Max limit reached of %s instance" % current_instance_count)
+                time.sleep(60)
             else:
                 print(f"Messages in Input Queue: {total_msgs}. Scaling Up!")
                 current_instance_count = auto_scale_obj.scaleup(current_instance_count, required_instance_count)
-            time.sleep(COOLDOWN)
-        elif required_instance_count < current_instance_count:
+                time.sleep(COOLDOWN)
+        elif required_instance_count <= current_instance_count:
             if current_instance_count == MIN_INSTANCES:
                 print("Min limit reached of %s instance" % current_instance_count)
+                time.sleep(60)
             else:
                 print(f"Messages in Input Queue: {total_msgs}. Scaling Down!")
                 current_instance_count = auto_scale_obj.scaledown(current_instance_count, required_instance_count)
-            time.sleep(COOLDOWN)
+                time.sleep(COOLDOWN)
 
 
 if __name__ == "__main__":
