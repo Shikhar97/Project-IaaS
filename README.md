@@ -1,65 +1,39 @@
 # CSE546-Project1-IaaS
 
-## Group Members
-1. Shikhar Gupta - Web Tier
-2. Maitry Ronakbhai Trivedi - Autoscaling
-3. Ayushi Agarwal - App Tier
+## Project Description
+This project is completed in a group of three students. It consists of three-tier architecute (web-tier,
+app-tier and the data-storage) along with an auto-scaler to scale in and scale out with respect to the load.
 
-## AWS Credentials:
-- AWS_ACCESS_KEY_ID: []
-- AWS_SECRET_ACCESS_KEY: [] 
+### WebTier
+The webtier is a GoLang HTTP server which provides an end point for the user to upload the images. These images are then encoded using base64 and sent to a request SQS queue.
 
-## PEM Key for Web-Tier SSH Access:
-- Key Name: cc_project1.pem
+### AppTier
+The app-tier keeps polling(long-polling) the request queue and once it receives an image, it classifies the image using the 
+given deep learning model. It then returns the results to the response queue and as well as upload to s3 input bucket. 
+It also uploads the output from the model to a different bucket.
 
-## Web Tier's URL and EIP (Elastic IP):
-- Web Tier URL: []
-- Elastic IP (EIP): []
+### AutoScaler
+It keeps polling the size of the request queue once the size reaches a threshold it scales out and similarly once the threshold is less it scales in.
 
-## SQS Queue Names:
-1. Request Queue: request_queue.fifo
-2. Response Queue: response_queue.fifo
+### DataStorage
+The data storage tier consists of two S3 buckets, one to store input by user and other to store the images_name and the class.
 
-## S3 Bucket Names:
-1. Input Bucket: inputimage-bucket
-2. Output Bucket: outputresults-bucket
+# Getting Started
+1. For webtier and autoscaler :
+       
+        1. Clone this repository to your machine. 
+        2. Copy the AWS credentials to a .env file inside webtier/ and autoscaler/ directories.
+        3. Run the ./setup.sh scripts to install dependencies for both Python and Go.
+        4. To build a binary from the main.go, we can simply run `go build .` when we are inside the webtier directory. This will create a binary file named ./webtier.
+        5. After this, we can simply execute the binary by running ./webtier. This will start up the Go server at port 8001.
+        6. User can then send requests at http://<public-ip>:8001/upload_images
+        7. Run python3 autoscale.py to start the autoscaler script.
 
-## Project Description:
-This project is an image classification app that utilizes AWS services and a web tier to perform image classification tasks. Below is a brief overview of the project components:
+2. For app-tier :
 
-### Web Tier (Go)
-
-#### setup.sh
-Bash script to set up the environment and install necessary packages specified in a ‘requirements.txt’ to run the Go backend.
-
-#### main.go 
-This code serves as the backend for an image recognition service. It accepts image uploads, processes them, and communicates asynchronously with AWS SQS queues to manage recognition requests and responses.
-
-### App Tier (Python):
-
-#### setup.sh
-Bash installing the Go programming language and configuring the environment variables necessary for Go development.
-
-#### apptier.py
-This script listens to an SQS request queue for image classification tasks. When a message arrives in the request queue, it decodes the image, performs classification, stores the image in an S3 bucket, and sends the classification result to a response queue.
-
-#### Image_classification.py
-Contains the provided image classification code. 
-
-#### imagenet-labels.json
-json file which contains the image labels. 
-
-### Auto Scaling (Python):
-
-#### setup.sh
-Bash script to set up the environment and install packages specified in a ‘requirements.txt’.
-
-#### autoscale.py
-A module to handle the scale-in and scale-out functionality. 
-
-## How to Run the Project:
-1. Clone this repository to your local machine.
-2. Set up your AWS credentials (AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY).
-3. Run the setup scripts to install dependencies for both Python and Go.
-4. Deploy the web tier on your server and ensure it's accessible via the provided URL.
-5. Use the workload generator to send image classification requests to the web tier.
+        1. Clone this repository to your machine. 
+        2. Copy the AWS credentials to a .env file inside webtier/ and autoscaler/ directories.
+        3. Run the ./setup.sh scripts to install dependencies for Python.
+        3. After this, we can simply start the script using python2 apptier.py.
+        3. We added a crontab entry for the script to start on boot:
+                     @reboot /usr/bin/python3 /home/ubuntu/Project-IaaS/apptier/apptier.py 
