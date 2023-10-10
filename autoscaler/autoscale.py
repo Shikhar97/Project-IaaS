@@ -12,11 +12,11 @@ COOLDOWN = 120
 
 class AutoScale:
     def __init__(self, config):
-        self.image_ami_id = 'ami-06dcf31975972ef91'
+        self.image_ami_id = 'ami-0f443623c38a6b7f8'
         self.instance_type = 't2.micro'
-        self.subnet_id = "subnet-09d6065e5b1bce424"
-        self.key_name = 'cc_project1'
-        self.security_group = "sg-0afd4e0aeafb5b473"
+        self.subnet_id = "subnet-03513ad7b212b9a4b"
+        self.key_name = 'project_iaas'
+        self.security_group = "sg-07651c181a0fbcf21"
         self.availability_zone = "us-east-1a"
         self.instance_map = {}
         self.request_queue_url = config.get('REQUEST_QUEUE_URL')
@@ -35,7 +35,7 @@ class AutoScale:
                     'DeviceName': "/dev/sdf",
                     'Ebs': {
                         'DeleteOnTermination': True,
-                        'VolumeSize': 20,
+                        'VolumeSize': 15,
                         'VolumeType': 'gp2'
                     }
                 },
@@ -128,23 +128,23 @@ def main():
     while True:
         total_msgs = auto_scale_obj.get_total_msgs()
         required_instance_count = int(total_msgs / SCALE_FACTOR)
-        if required_instance_count > current_instance_count:
+        if required_instance_count == 0:
+            print("Load is OK")
+            time.sleep(60)
+        elif required_instance_count > current_instance_count:
             if current_instance_count == MAX_INSTANCES:
                 print("Max limit reached of %s instance" % current_instance_count)
             else:
                 print(f"Messages in Input Queue: {total_msgs}. Scaling Up!")
                 current_instance_count = auto_scale_obj.scaleup(current_instance_count, required_instance_count)
-                time.sleep(COOLDOWN)
+            time.sleep(COOLDOWN)
         elif required_instance_count < current_instance_count:
             if current_instance_count == MIN_INSTANCES:
                 print("Min limit reached of %s instance" % current_instance_count)
             else:
                 print(f"Messages in Input Queue: {total_msgs}. Scaling Down!")
                 current_instance_count = auto_scale_obj.scaledown(current_instance_count, required_instance_count)
-                time.sleep(COOLDOWN)
-        else:
-            print("Load is OK")
-            time.sleep(60)
+            time.sleep(COOLDOWN)
 
 
 if __name__ == "__main__":
